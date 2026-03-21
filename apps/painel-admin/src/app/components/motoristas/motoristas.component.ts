@@ -239,7 +239,11 @@ export class MotoristasComponent implements OnInit {
       alert('Preencha os campos obrigatórios!');
       return;
     }
-    await this.frotasService.criarMotorista(this.formMotorista);
+    if (this.editando && this.editandoId) {
+      await this.frotasService.atualizarMotorista(this.editandoId, this.formMotorista);
+    } else {
+      await this.frotasService.criarMotorista(this.formMotorista);
+    }
     this.cancelarForm();
     this.frotasService.limparCache();
     await this.carregarMotoristas();
