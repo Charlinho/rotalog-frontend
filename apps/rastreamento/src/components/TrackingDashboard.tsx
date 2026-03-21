@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 // Class component com lógica de negócio e apresentação misturadas
-class TrackingDashboard extends React.Component {
-  constructor(props) {
+class TrackingDashboard extends React.Component<any, any> {
+  constructor(props: any) {
     super(props);
     this.state = {
       expanded: false,
@@ -111,7 +111,7 @@ class TrackingDashboard extends React.Component {
 
             <div className="timeline">
               <h3>Histórico</h3>
-              {delivery.events && delivery.events.map((event, idx) => (
+              {delivery.events && delivery.events.map((event: any, idx: number) => (
                 <div key={idx} className="timeline-item">
                   <span className="timeline-time">{event.timestamp}</span>
                   <span className="timeline-event">{event.description}</span>
@@ -125,7 +125,7 @@ class TrackingDashboard extends React.Component {
   }
 }
 
-TrackingDashboard.propTypes = {
+(TrackingDashboard as any).propTypes = {
   delivery: PropTypes.object
 };
 

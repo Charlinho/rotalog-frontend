@@ -1,8 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-class DeliveryList extends React.Component {
-  constructor(props) {
+class DeliveryList extends React.Component<any, any> {
+  constructor(props: any) {
     super(props);
     this.state = {
       filteredDeliveries: props.deliveries,
@@ -10,7 +10,7 @@ class DeliveryList extends React.Component {
     };
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: any) {
     if (prevProps.deliveries !== this.props.deliveries) {
       this.updateFilteredList();
     }
@@ -23,7 +23,7 @@ class DeliveryList extends React.Component {
     let filtered = [...deliveries];
 
     // TODO: Sorting deveria estar em Redux
-    filtered.sort((a, b) => {
+    filtered.sort((a: any, b: any) => {
       if (this.state.sortBy === 'status') {
         return a.status.localeCompare(b.status);
       }
@@ -52,7 +52,7 @@ class DeliveryList extends React.Component {
         </div>
 
         <div className="list-items">
-          {filteredDeliveries.map(delivery => (
+          {filteredDeliveries.map((delivery: any) => (
             <div 
               key={delivery.id}
               className={`list-item ${selectedDelivery?.id === delivery.id ? 'selected' : ''}`}
@@ -77,7 +77,7 @@ class DeliveryList extends React.Component {
   }
 }
 
-DeliveryList.propTypes = {
+(DeliveryList as any).propTypes = {
   deliveries: PropTypes.array.isRequired,
   selectedDelivery: PropTypes.object,
   onSelectDelivery: PropTypes.func.isRequired,

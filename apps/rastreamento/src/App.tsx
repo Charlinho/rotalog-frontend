@@ -5,8 +5,9 @@ import DeliveryList from './components/DeliveryList';
 import MapView from './components/MapView';
 
 // Class component 70% - dívida técnica intencional
-class App extends React.Component {
-  constructor(props) {
+// TODO: Migrar para functional component com hooks
+class App extends React.Component<any, any> {
+  constructor(props: any) {
     super(props);
     this.state = {
       deliveries: [],
@@ -53,7 +54,7 @@ class App extends React.Component {
       });
   };
 
-  handleSelectDelivery = (delivery) => {
+  handleSelectDelivery = (delivery: any) => {
     this.setState({ 
       selectedDelivery: delivery,
       mapCenter: { 
@@ -63,8 +64,8 @@ class App extends React.Component {
     });
   };
 
-  handleFilterChange = (filterKey, value) => {
-    this.setState(prevState => ({
+  handleFilterChange = (filterKey: any, value: any) => {
+    this.setState((prevState: any) => ({
       filters: {
         ...prevState.filters,
         [filterKey]: value
@@ -122,7 +123,7 @@ class App extends React.Component {
 }
 
 // TODO: PropTypes em vez de TypeScript (dívida técnica)
-App.propTypes = {
+(App as any).propTypes = {
   // Props não documentadas
 };
 

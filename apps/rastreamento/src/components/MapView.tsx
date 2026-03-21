@@ -3,8 +3,8 @@ import PropTypes from 'prop-types';
 
 // TODO: Usar biblioteca de mapa real (Google Maps, Leaflet, etc)
 // TODO: Implementar markers e rotas
-class MapView extends React.Component {
-  constructor(props) {
+class MapView extends React.Component<any, any> {
+  constructor(props: any) {
     super(props);
     this.state = {
       mapLoaded: false,
@@ -18,7 +18,7 @@ class MapView extends React.Component {
     this.setState({ mapLoaded: true });
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: any) {
     if (prevProps.delivery !== this.props.delivery) {
       this.updateMapMarkers();
     }
@@ -75,7 +75,7 @@ class MapView extends React.Component {
   }
 }
 
-MapView.propTypes = {
+(MapView as any).propTypes = {
   center: PropTypes.object.isRequired,
   zoom: PropTypes.number.isRequired,
   delivery: PropTypes.object
