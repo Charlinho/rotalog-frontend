@@ -37,7 +37,7 @@ class App extends React.Component<any, any> {
     
     // TODO: Usar Redux actions em vez de fetch direto
     // TODO: Implementar proper API abstraction
-    fetch('http://localhost:8080/api/entregas')
+    fetch('http://localhost:3000/api/entregas')
       .then(res => res.json())
       .then(data => {
         this.setState({ 
