@@ -3,7 +3,12 @@
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
     "types": ["node"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "strict": false,
+    "noImplicitAny": false,
+    "noImplicitOverride": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "files": ["src/main.tsx"],
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
