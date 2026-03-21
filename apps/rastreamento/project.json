@@ -12,7 +12,7 @@
         "outputPath": "dist/apps/rastreamento",
         "index": "apps/rastreamento/src/index.html",
         "main": "apps/rastreamento/src/main.tsx",
-        "polyfills": [],
+
         "tsConfig": "apps/rastreamento/tsconfig.app.json",
         "assets": ["apps/rastreamento/src/favicon.ico", "apps/rastreamento/src/assets"],
         "styles": ["apps/rastreamento/src/styles.css"],
