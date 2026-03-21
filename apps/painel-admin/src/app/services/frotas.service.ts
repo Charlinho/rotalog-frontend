@@ -129,6 +129,22 @@ export class FrotasService {
     }
   }
 
+  async atualizarMotorista(id: number, motorista: Partial<Motorista>): Promise<Motorista | null> {
+    try {
+      const response = await fetch(`${API_URL}/api/motoristas/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(motorista)
+      });
+      if (!response.ok) throw new Error('Erro ao atualizar motorista');
+      this.motoristasCache = null;
+      return await response.json();
+    } catch (error) {
+      console.error('Erro:', error);
+      return null;
+    }
+  }
+
   async criarMotorista(motorista: Partial<Motorista>): Promise<Motorista | null> {
     try {
       const response = await fetch(`${API_URL}/api/motoristas`, {
