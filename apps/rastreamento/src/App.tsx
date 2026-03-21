@@ -58,8 +58,8 @@ class App extends React.Component<any, any> {
     this.setState({ 
       selectedDelivery: delivery,
       mapCenter: { 
-        lat: delivery.destination_lat, 
-        lng: delivery.destination_lng 
+        lat: delivery.destino_lat || delivery.origem_lat, 
+        lng: delivery.destino_lng || delivery.origem_lng 
       }
     });
   };

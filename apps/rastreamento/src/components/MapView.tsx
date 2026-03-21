@@ -1,151 +1,314 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-// TODO: Usar biblioteca de mapa real (Google Maps, Leaflet, etc)
-// TODO: Implementar markers e rotas
+// TODO: Usar react-leaflet em vez de Leaflet vanilla (dívida técnica)
+// Importando Leaflet diretamente porque o webpack do NX tem problemas com react-leaflet
+// FIXME: deveria usar react-leaflet para integração melhor com lifecycle do React
+
+declare const L: any; // FIXME: tipagem fraca - Leaflet carregado via CDN
+
 class MapView extends React.Component<any, any> {
+  private mapRef: any;
+  private mapInstance: any;
+  private markersLayer: any;
+  private routeLine: any;
+
   constructor(props: any) {
     super(props);
+    this.mapRef = React.createRef();
+    this.mapInstance = null;
+    this.markersLayer = null;
+    this.routeLine = null;
     this.state = {
       mapLoaded: false,
-      markers: [],
-      currentZoom: props.zoom || 12,
-      currentCenter: props.center || { lat: -23.5505, lng: -46.6333 }
+      mapError: false
     };
   }
 
   componentDidMount() {
-    // TODO: Carregar Google Maps API
-    // TODO: Implementar geolocalização em tempo real
-    this.setState({ mapLoaded: true });
+    this.loadLeaflet();
   }
 
   componentDidUpdate(prevProps: any) {
-    if (prevProps.delivery !== this.props.delivery) {
+    if (prevProps.delivery !== this.props.delivery && this.mapInstance) {
       this.updateMapMarkers();
     }
   }
 
-  updateMapMarkers = () => {
-    const { delivery } = this.props;
-    if (delivery) {
-      // TODO: Adicionar markers no mapa de verdade
-      this.setState({
-        markers: [
-          { lat: delivery.origem_lat, lng: delivery.origem_lng, type: 'origin' },
-          { lat: delivery.destino_lat, lng: delivery.destino_lng, type: 'destination' }
-        ],
-        currentCenter: {
-          lat: delivery.origem_lat || this.props.center.lat,
-          lng: delivery.origem_lng || this.props.center.lng
-        }
+  componentWillUnmount() {
+    if (this.mapInstance) {
+      this.mapInstance.remove();
+      this.mapInstance = null;
+    }
+  }
+
+  loadLeaflet = () => {
+    // FIXME: Leaflet carregado via CDN script tag - deveria ser via npm
+    if (typeof L !== 'undefined') {
+      this.initMap();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+    script.crossOrigin = '';
+    script.onload = () => {
+      this.initMap();
+    };
+    script.onerror = () => {
+      console.error('Erro ao carregar Leaflet');
+      this.setState({ mapError: true });
+    };
+    document.head.appendChild(script);
+  };
+
+  initMap = () => {
+    if (!this.mapRef.current || this.mapInstance) return;
+
+    try {
+      const { center, zoom } = this.props;
+
+      this.mapInstance = L.map(this.mapRef.current, {
+        center: [center.lat, center.lng],
+        zoom: zoom || 12,
+        zoomControl: true
       });
+
+      // OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }).addTo(this.mapInstance);
+
+      // Layer group para markers
+      this.markersLayer = L.layerGroup().addTo(this.mapInstance);
+
+      this.setState({ mapLoaded: true });
+
+      // Se já tem delivery selecionada, mostrar no mapa
+      if (this.props.delivery) {
+        this.updateMapMarkers();
+      }
+    } catch (error) {
+      console.error('Erro ao inicializar mapa:', error);
+      this.setState({ mapError: true });
     }
   };
 
-  // TODO: Deveria usar debounce para evitar re-renders excessivos
-  handleZoomIn = () => {
-    this.setState((prevState: any) => ({
-      currentZoom: Math.min(prevState.currentZoom + 1, 20)
-    }));
-  };
+  updateMapMarkers = () => {
+    const { delivery } = this.props;
+    if (!this.mapInstance || !this.markersLayer) return;
 
-  handleZoomOut = () => {
-    this.setState((prevState: any) => ({
-      currentZoom: Math.max(prevState.currentZoom - 1, 1)
-    }));
+    // Limpar markers anteriores
+    this.markersLayer.clearLayers();
+    if (this.routeLine) {
+      this.mapInstance.removeLayer(this.routeLine);
+      this.routeLine = null;
+    }
+
+    if (!delivery) return;
+
+    const origemLat = parseFloat(delivery.origem_lat);
+    const origemLng = parseFloat(delivery.origem_lng);
+    const destinoLat = parseFloat(delivery.destino_lat);
+    const destinoLng = parseFloat(delivery.destino_lng);
+
+    const hasOrigem = !isNaN(origemLat) && !isNaN(origemLng);
+    const hasDestino = !isNaN(destinoLat) && !isNaN(destinoLng);
+
+    // Ícone customizado para origem (verde)
+    const origemIcon = L.divIcon({
+      className: 'custom-marker',
+      html: '<div style="background:#1D9E75;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">📦</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16]
+    });
+
+    // Ícone customizado para destino (vermelho)
+    const destinoIcon = L.divIcon({
+      className: 'custom-marker',
+      html: '<div style="background:#D32F2F;color:white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏁</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+      popupAnchor: [0, -16]
+    });
+
+    // Adicionar marker de origem
+    if (hasOrigem) {
+      const origemMarker = L.marker([origemLat, origemLng], { icon: origemIcon })
+        .bindPopup(
+          '<div style="min-width:200px">' +
+          '<strong style="color:#1D9E75">📦 Origem</strong><br/>' +
+          '<span style="font-size:13px">' + delivery.origem_endereco + '</span>' +
+          '</div>'
+        );
+      this.markersLayer.addLayer(origemMarker);
+    }
+
+    // Adicionar marker de destino
+    if (hasDestino) {
+      const destinoMarker = L.marker([destinoLat, destinoLng], { icon: destinoIcon })
+        .bindPopup(
+          '<div style="min-width:200px">' +
+          '<strong style="color:#D32F2F">🏁 Destino</strong><br/>' +
+          '<span style="font-size:13px">' + delivery.destino_endereco + '</span>' +
+          (delivery.motorista_nome ? '<br/><span style="font-size:12px;color:#666">Motorista: ' + delivery.motorista_nome + '</span>' : '') +
+          '</div>'
+        );
+      this.markersLayer.addLayer(destinoMarker);
+    }
+
+    // Desenhar linha de rota entre origem e destino
+    if (hasOrigem && hasDestino) {
+      this.routeLine = L.polyline(
+        [[origemLat, origemLng], [destinoLat, destinoLng]],
+        { 
+          color: '#1D9E75', 
+          weight: 3, 
+          opacity: 0.7, 
+          dashArray: '10, 10' 
+        }
+      ).addTo(this.mapInstance);
+
+      // Ajustar o mapa para mostrar origem e destino
+      const bounds = L.latLngBounds(
+        [origemLat, origemLng],
+        [destinoLat, destinoLng]
+      );
+      this.mapInstance.fitBounds(bounds, { padding: [50, 50] });
+    } else if (hasOrigem) {
+      this.mapInstance.setView([origemLat, origemLng], 15);
+    } else if (hasDestino) {
+      this.mapInstance.setView([destinoLat, destinoLng], 15);
+    }
+
+    // Adicionar markers de rastreamento (posições intermediárias) para entregas em trânsito
+    if (delivery.rastreamentos && delivery.status === 'EM_TRANSITO') {
+      const posicoes = delivery.rastreamentos
+        .filter((r: any) => r.evento === 'POSICAO_ATUALIZADA' && r.latitude && r.longitude)
+        .sort((a: any, b: any) => new Date(a.data_evento).getTime() - new Date(b.data_evento).getTime());
+
+      posicoes.forEach((pos: any, idx: number) => {
+        const lat = parseFloat(pos.latitude);
+        const lng = parseFloat(pos.longitude);
+        if (isNaN(lat) || isNaN(lng)) return;
+
+        const isLast = idx === posicoes.length - 1;
+        const trackIcon = L.divIcon({
+          className: 'custom-marker',
+          html: '<div style="background:' + (isLast ? '#FF9800' : '#90CAF9') + ';border-radius:50%;width:' + (isLast ? '24' : '12') + 'px;height:' + (isLast ? '24' : '12') + 'px;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);">' + (isLast ? '🚚' : '') + '</div>',
+          iconSize: [isLast ? 24 : 12, isLast ? 24 : 12],
+          iconAnchor: [isLast ? 12 : 6, isLast ? 12 : 6]
+        });
+
+        const marker = L.marker([lat, lng], { icon: trackIcon })
+          .bindPopup(
+            '<div style="min-width:150px">' +
+            '<strong>' + (isLast ? '🚚 Posição Atual' : '📍 Posição') + '</strong><br/>' +
+            '<span style="font-size:12px">' + (pos.descricao || '') + '</span><br/>' +
+            '<span style="font-size:11px;color:#666">' + 
+              new Date(pos.data_evento).toLocaleString('pt-BR') + 
+            '</span>' +
+            '</div>'
+          );
+        this.markersLayer.addLayer(marker);
+      });
+
+      // Se tem posições de rastreamento, desenhar rota real
+      if (posicoes.length > 0) {
+        const allPoints = [];
+        if (hasOrigem) allPoints.push([origemLat, origemLng]);
+        posicoes.forEach((pos: any) => {
+          const lat = parseFloat(pos.latitude);
+          const lng = parseFloat(pos.longitude);
+          if (!isNaN(lat) && !isNaN(lng)) allPoints.push([lat, lng]);
+        });
+
+        if (this.routeLine) {
+          this.mapInstance.removeLayer(this.routeLine);
+        }
+
+        // Linha sólida para trecho percorrido
+        if (allPoints.length > 1) {
+          L.polyline(allPoints, { 
+            color: '#1D9E75', 
+            weight: 4, 
+            opacity: 0.8 
+          }).addTo(this.mapInstance);
+        }
+
+        // Linha tracejada para trecho restante (última posição até destino)
+        if (hasDestino && allPoints.length > 0) {
+          const lastPoint = allPoints[allPoints.length - 1];
+          this.routeLine = L.polyline(
+            [lastPoint, [destinoLat, destinoLng]],
+            { 
+              color: '#1D9E75', 
+              weight: 3, 
+              opacity: 0.5, 
+              dashArray: '8, 8' 
+            }
+          ).addTo(this.mapInstance);
+        }
+
+        // Fitbounds incluindo rastreamentos
+        if (hasDestino) {
+          const allCoords = allPoints.concat([[destinoLat, destinoLng]]);
+          const bounds = L.latLngBounds(allCoords);
+          this.mapInstance.fitBounds(bounds, { padding: [50, 50] });
+        }
+      }
+    }
   };
 
   handleCentralizar = () => {
+    if (!this.mapInstance) return;
+
     const { delivery } = this.props;
     if (delivery && delivery.origem_lat) {
-      this.setState({
-        currentCenter: {
-          lat: delivery.origem_lat,
-          lng: delivery.origem_lng
-        },
-        currentZoom: 14
-      });
+      this.mapInstance.setView(
+        [parseFloat(delivery.origem_lat), parseFloat(delivery.origem_lng)],
+        14
+      );
     } else {
       // Centralizar em São Paulo
-      this.setState({
-        currentCenter: { lat: -23.5505, lng: -46.6333 },
-        currentZoom: 12
-      });
+      this.mapInstance.setView([-23.5505, -46.6333], 12);
     }
-  };
-
-  // TODO: Extrair para componente separado
-  renderMarkers = () => {
-    const { markers } = this.state;
-    if (!markers || markers.length === 0) return null;
-
-    return (
-      <div className="map-markers">
-        {markers.map((marker: any, index: number) => (
-          <div key={index} className="map-marker">
-            <span className={`marker-icon marker-${marker.type}`}>
-              {marker.type === 'origin' ? '📍' : '🏁'}
-            </span>
-            <span className="marker-coords">
-              {marker.lat?.toFixed(4)}, {marker.lng?.toFixed(4)}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
   };
 
   render() {
     const { delivery } = this.props;
-    const { mapLoaded, currentZoom, currentCenter } = this.state;
-
-    // TODO: Calcular escala fake baseada no zoom
-    const scaleKm = Math.max(0.1, (20 - currentZoom) * 2.5).toFixed(1);
+    const { mapLoaded, mapError } = this.state;
 
     return (
       <div className="map-view">
         <div className="map-header">
           <h3>Mapa de Rastreamento</h3>
-          {delivery && <span className="map-info">Entrega: {delivery.numero_pedido}</span>}
-        </div>
-
-        <div className="map-container">
-          {!mapLoaded && <div className="map-loading">Carregando mapa...</div>}
-          
-          {/* TODO: Implementar mapa real com Google Maps API */}
-          <div className="map-placeholder">
-            {delivery ? (
-              <div className="delivery-map-info">
-                <p style={{ fontWeight: 'bold', fontSize: '16px' }}>
-                  {delivery.numero_pedido}
-                </p>
-                <p>📍 Origem: {delivery.origem_endereco}</p>
-                <p>🏁 Destino: {delivery.destino_endereco}</p>
-                <p style={{ marginTop: '10px', color: '#666' }}>
-                  Distância: {delivery.distancia_km} km | 
-                  Tempo estimado: {delivery.tempo_estimado_minutos} min
-                </p>
-                {this.renderMarkers()}
-              </div>
-            ) : (
-              <div>
-                <p>Mapa de rastreamento</p>
-                <p style={{ color: '#999' }}>Selecione uma entrega para ver no mapa</p>
-              </div>
-            )}
-            <div className="map-status-bar">
-              <span>Centro: {currentCenter.lat?.toFixed(4)}, {currentCenter.lng?.toFixed(4)}</span>
-              <span>Zoom: {currentZoom}</span>
-              <span>Escala: ~{scaleKm} km</span>
-            </div>
+          <div className="map-header-actions">
+            {delivery && <span className="map-info">Entrega #{delivery.id} - {delivery.numero_pedido}</span>}
+            <button onClick={this.handleCentralizar} className="btn-centralizar" title="Centralizar mapa">
+              Centralizar
+            </button>
           </div>
         </div>
 
-        <div className="map-controls">
-          <button onClick={this.handleZoomIn} title="Aumentar zoom">+</button>
-          <button onClick={this.handleZoomOut} title="Diminuir zoom">-</button>
-          <button onClick={this.handleCentralizar} title="Centralizar mapa">Centralizar</button>
+        <div className="map-container">
+          {mapError && (
+            <div className="map-error">
+              <p>Erro ao carregar o mapa</p>
+              <p style={{ fontSize: '12px', color: '#999' }}>Verifique sua conexão com a internet</p>
+            </div>
+          )}
+          <div 
+            ref={this.mapRef} 
+            className="leaflet-map"
+            style={{ width: '100%', height: '100%' }}
+          />
+          {!mapLoaded && !mapError && (
+            <div className="map-loading">Carregando mapa...</div>
+          )}
         </div>
       </div>
     );
