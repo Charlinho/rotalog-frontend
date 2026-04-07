@@ -14,7 +14,7 @@ class DeliveryList extends React.Component<any, any> {
   constructor(props: any) {
     super(props);
     this.state = {
-      filteredDeliveries: props.deliveries,
+      filteredDeliveries: props.deliveries || [],
       sortBy: 'status'
     };
   }
@@ -28,7 +28,7 @@ class DeliveryList extends React.Component<any, any> {
   updateFilteredList = () => {
     // TODO: Implementar filtros corretamente
     // TODO: Usar Redux selectors em vez de state local
-    const { deliveries } = this.props;
+    const { deliveries = [] } = this.props;
     let filtered = [...deliveries];
 
     // TODO: Sorting deveria estar em Redux

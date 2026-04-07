@@ -27,29 +27,60 @@ class App extends React.Component<any, any> {
   }
 
   componentDidMount() {
-    this.fetchDeliveries();
-    // TODO: Implementar proper error handling
-    // TODO: Adicionar loading states
+    this.authenticate().then(() => this.fetchDeliveries());
   }
+
+  // TODO: Implementar tela de login real
+  authenticate = async () => {
+    const stored = localStorage.getItem('auth_token');
+    if (stored) return;
+
+    try {
+      const res = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'admin@rotalog.com', password: 'admin123' }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Falha na autenticação: HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      localStorage.setItem('auth_token', data.token);
+    } catch (err: any) {
+      console.error('Erro ao autenticar:', err);
+      this.setState({ error: err.message });
+    }
+  };
 
   fetchDeliveries = () => {
     this.setState({ loading: true });
-    
-    // TODO: Usar Redux actions em vez de fetch direto
-    // TODO: Implementar proper API abstraction
-    fetch('http://localhost:3000/api/entregas')
-      .then(res => res.json())
+
+    const token = localStorage.getItem('auth_token');
+
+    fetch('http://localhost:3000/api/entregas', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`Erro HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
-        this.setState({ 
+        this.setState({
           deliveries: data,
-          loading: false 
+          loading: false
         });
       })
       .catch(err => {
         console.error('Erro ao buscar entregas:', err);
-        this.setState({ 
+        this.setState({
           error: err.message,
-          loading: false 
+          loading: false
         });
       });
   };
