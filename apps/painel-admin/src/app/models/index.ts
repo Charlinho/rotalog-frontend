@@ -58,6 +58,19 @@ export interface Entrega {
   created_at: string;
 }
 
+export interface AlertaManutencaoPersistido {
+  id: number;
+  veiculoId: number;
+  placa: string;
+  modelo: string;
+  quilometragemAtual: number;
+  motivoAlerta: string; // QUILOMETRAGEM_EXCEDIDA, PRAZO_EXCEDIDO
+  statusNotificacao: string; // PENDENTE, ENVIADO, FALHA
+  erroMensagem: string | null;
+  dataCriacao: string;
+  dataAtualizacao: string;
+}
+
 // TODO: Tipo genérico para resposta da API - nunca implementado
 export interface ApiResponse<T> {
   data: T;

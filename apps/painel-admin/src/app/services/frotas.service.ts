@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Veiculo, Motorista, Manutencao } from '../models';
+import { Veiculo, Motorista, Manutencao, AlertaManutencaoPersistido } from '../models';
 
 // TODO: Deveria usar HttpClient do Angular em vez de fetch
 // TODO: Sem interceptors para auth
@@ -179,6 +179,22 @@ export class FrotasService {
     try {
       const response = await fetch(`${API_URL}/api/manutencoes?veiculoId=${veiculoId}`);
       if (!response.ok) throw new Error('Erro');
+      return await response.json();
+    } catch (error) {
+      console.error('Erro:', error);
+      return [];
+    }
+  }
+
+  // ========== ALERTAS DE MANUTENÇÃO ==========
+
+  async getAlertasManutencao(status?: string): Promise<AlertaManutencaoPersistido[]> {
+    try {
+      const url = status
+        ? `${API_URL}/api/alertas-manutencao?status=${status}`
+        : `${API_URL}/api/alertas-manutencao`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Erro ao buscar alertas de manutenção');
       return await response.json();
     } catch (error) {
       console.error('Erro:', error);
